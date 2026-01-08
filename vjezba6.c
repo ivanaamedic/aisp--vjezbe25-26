@@ -1,160 +1,152 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
-struct _elem;
-typedef struct _elem* Position;
-typedef struct _elem {
-    int el;
-    Position Next;
-}Elem;
-Position createelem() {
-    Position new = (Position)malloc(sizeof(Elem));
-    if (new == NULL) {
-        printf("Memory allocation fail !!");
-            return 1;
+#define MIN 10
+#define MAX 100
 
-    }
-    new->Next = NULL;
-    printf("\nUnesite element :\t");
-    scanf(" %d", &new->el);
+struct cvor;
+typedef struct cvor* Pozicija;
 
-    return new;
-}
-int pushstog(Position head) {
-    Position new = createelem();
-    if (new == NULL) {
-        printf("FAIL!!");
-            return 1;
-    }
-    new->Next = head->Next;
-    head->Next = new;
+struct cvor {
+    int element;
+    Pozicija sljedeci;
+};
 
-    return 0;
-}
-int printstog(Position head) {
-    while (head->Next != NULL) {
-        printf("%d\t", head->Next->el);
-            head = head->Next;
-    }
-    return 0;
+int pushStog(Pozicija glava, int vrijednost);
+int popStog(Pozicija glava);
+int pushRed(Pozicija glava, Pozicija* zadnji, int vrijednost);
+int popRed(Pozicija glava, Pozicija* zadnji);
+int ispis(Pozicija prvi);
+int obrisiSve(Pozicija glava);
+int slucajniBroj(void);
 
-
-}
-
-
-int popstog(Position head) {
-    Position temp = head;
-    temp = head->Next;
-    head->Next = temp->Next;
-    free(temp);
-    return 0;
-}
-int pushred(Position head2) {
-    Position new = createelem();
-    if (new == NULL) {
-        printf("Memory allocation fail 1!");
-            return 1;
-    }
-
-    while (head2->Next != NULL) {
-        head2 = head2->Next;
-
-    }
-    new->Next = head2->Next;
-    head2->Next = new;
-    return 0;
-}
-int printred(Position head2) {
-    while (head2->Next != NULL) {
-        printf("%d\t", head2->Next->el);
-        head2 = head2->Next;
-    }
-    return 0;
-
-}
-int popred(Position head2) {
-    Position temp = head2;
-    temp = head2->Next;
-    head2->Next = temp->Next;
-    free(temp);
-
-    return 0;
-}
-int freelist(Position head) {
-    Position temp = head;
-    while (head->Next != NULL) {
-        temp = head->Next;
-        head->Next = temp->Next;
-        free(temp);
-    }
-
-    return 0;
-}
-
-int freelist2(Position head2) {
-    Position temp = head2;
-    while (head2->Next != NULL) {
-        temp = head2->Next;
-        head2->Next = temp->Next;
-        free(temp);
-    }
-
-    return 0;
-}
 int main() {
-    Position head = (Position)malloc(sizeof(Elem));
-    if (head == NULL) {
-        printf("Memory allocation fail !!");
-            return 1;   
-    }
-    head->Next = NULL;
-    Position head2 = (Position)malloc(sizeof(Elem));
-    if (head2 == NULL) {
-        printf("Memory allocation fail !!");
-            return 1;   
-    }
-    head2->Next = NULL;
+    struct cvor glavaStog = { 0, NULL };
+    struct cvor glavaRed = { 0, NULL };
+    Pozicija zadnjiRed = NULL;
+    int izbor = 0;
 
-    int x = 1;
-    while (x != 0) {
-        printf("\n1-Push stog\n2-Print stog\n3-Pop stog\n4-Push red\n5-Print red\n6-Pop red\n0-Exit\n");
-        scanf("%d", &x);
-        int result = 0;
+    srand((unsigned)time(NULL));
 
-    switch (x) {
+    do {
+        printf("\n1 Push stog\n2 Pop stog\n3 Ispis stog\n4 Ispis red\n5 Push red\n6 Pop red\n");
+        scanf("%d", &izbor);
 
+        switch (izbor) {
         case 1:
-
-            result = pushstog(head);
+            pushStog(&glavaStog, slucajniBroj());
             break;
         case 2:
-            result = printstog(head);
+            popStog(&glavaStog);
             break;
         case 3:
-            result = popstog(head);
+            ispis(glavaStog.sljedeci);
             break;
         case 4:
-            result = pushred(head2);
+            ispis(glavaRed.sljedeci);
             break;
         case 5:
-            result = printred(head2);
+            pushRed(&glavaRed, &zadnjiRed, slucajniBroj());
             break;
         case 6:
-            result = popred(head2);
+            popRed(&glavaRed, &zadnjiRed);
             break;
+        }
+        printf("0 nastavi, 1 izlaz: ");
+        scanf("%d", &izbor);
+    } while (izbor == 0);
 
+    obrisiSve(&glavaStog);
+    obrisiSve(&glavaRed);
 
+    return 0;
 }
 
-        if (result == 1) {
-            printf("Naredba nije uspjela !!\n");
-            freelist(head);
-            freelist2(head2);
-            return 1;
-}   
-        }
-freelist2(head2);
-freelist(head);
-return 0;
+int slucajniBroj(void) {
+    return rand() % (MAX - MIN + 1) + MIN;
+}
+
+int pushStog(Pozicija glava, int vrijednost) {
+    Pozicija novi = malloc(sizeof(struct cvor));
+    if (!novi) return -1;
+
+    novi->element = vrijednost;
+    novi->sljedeci = glava->sljedeci;
+    glava->sljedeci = novi;
+    return 0;
+}
+
+int popStog(Pozicija glava) {
+    Pozicija temp;
+    if (!glava->sljedeci) {
+        printf("Stog je prazan\n");
+        return -1;
+    }
+    temp = glava->sljedeci;
+    glava->sljedeci = temp->sljedeci;
+    printf("Uklonjeno: %d\n", temp->element);
+    free(temp);
+    return 0;
+}
+
+int pushRed(Pozicija glava, Pozicija* zadnji, int vrijednost) {
+    Pozicija novi = malloc(sizeof(struct cvor));
+    if (!novi) return -1;
+
+    novi->element = vrijednost;
+    novi->sljedeci = NULL;
+
+    if (!glava->sljedeci) {
+        glava->sljedeci = novi;
+    }
+    else {
+        (*zadnji)->sljedeci = novi;
+    }
+
+    *zadnji = novi;
+    return 0;
+}
+
+int popRed(Pozicija glava, Pozicija* zadnji) {
+    Pozicija temp;
+    if (!glava->sljedeci) {
+        printf("Red je prazan\n");
+        return -1;
+    }
+
+    temp = glava->sljedeci;
+    glava->sljedeci = temp->sljedeci;
+
+    if (!glava->sljedeci)
+        *zadnji = NULL;
+
+    printf("Uklonjeno: %d\n", temp->element);
+    free(temp);
+    return 0;
+}
+
+int ispis(Pozicija p) {
+    if (!p) {
+        printf("Prazno\n");
+        return 0;
+    }
+
+    while (p) {
+        printf("%d ", p->element);
+        p = p->sljedeci;
+    }
+    printf("\n");
+    return 0;
+}
+
+int obrisiSve(Pozicija glava) {
+    Pozicija temp;
+    while (glava->sljedeci) {
+        temp = glava->sljedeci;
+        glava->sljedeci = temp->sljedeci;
+        free(temp);
+    }
+    return 0;
 }

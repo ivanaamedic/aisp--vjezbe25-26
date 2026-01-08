@@ -1,143 +1,184 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <math.h>
 
-typedef struct Number number;
-typedef struct Number* position;
-struct Number {
-    int el;
-    position next;
+struct cvor;
+typedef struct cvor* Pozicija;
+
+struct cvor {
+    int element;
+    Pozicija sljedeci;
 };
 
-int readFromFile(const char*, position);
-int pushSorted(position*, int);
-position getUnion(position, position);
-position getIntersection(position, position);
-int printList(position);
-void freeList(position);
+/* Prototipi */
+int ucitajIzDatoteke(Pozicija glava);
+int ispisListe(Pozicija prvi);
+int unija(Pozicija L1, Pozicija L2, Pozicija U);
+int presjek(Pozicija L1, Pozicija L2, Pozicija P);
+void obrisiSve(Pozicija glava);
 
 int main() {
-    position l1 = NULL, l2 = NULL; //umisto position napisat Number l1, u drugoj liniji l1.Nexy=NULL
-    int i = 0, j = 0;
-    for (i = 10; i > 0; i--) {
-        pushSorted(&l1, i);
-    }
-    for (j = 6; j < 16; j++) {
-        pushSorted(&l2, j);
+    struct cvor glava1 = { 0, NULL };
+    struct cvor glava2 = { 0, NULL };
+    struct cvor glavaUnija = { 0, NULL };
+    struct cvor glavaPresjek = { 0, NULL };
+
+    if (ucitajIzDatoteke(&glava1) != 0) {
+        printf("Greska pri ucitavanju prve liste!\n");
+        return 1;
     }
 
-    printf("List l1: ");
-    printList(l1);
-    printf("List l2: ");
-    printList(l2);
-    printf("Union: ");
-    position unionList = getUnion(l1, l2);
-    printList(unionList);
-    printf("Intersection: ");
-    position intersectionList = getIntersection(l1, l2);
-    printList(intersectionList);
+    if (ucitajIzDatoteke(&glava2) != 0) {
+        printf("Greska pri ucitavanju druge liste!\n");
+        obrisiSve(&glava1);
+        return 1;
+    }
 
-    freeList(l1);
-    freeList(l2);
-    freeList(unionList);
-    freeList(intersectionList);
+    printf("\nLista 1: ");
+    ispisListe(glava1.sljedeci);
+
+    printf("Lista 2: ");
+    ispisListe(glava2.sljedeci);
+
+    unija(glava1.sljedeci, glava2.sljedeci, &glavaUnija);
+    presjek(glava1.sljedeci, glava2.sljedeci, &glavaPresjek);
+
+    printf("\nUnija: ");
+    ispisListe(glavaUnija.sljedeci);
+
+    printf("Presjek: ");
+    ispisListe(glavaPresjek.sljedeci);
+
+    obrisiSve(&glava1);
+    obrisiSve(&glava2);
+    obrisiSve(&glavaUnija);
+    obrisiSve(&glavaPresjek);
 
     return 0;
 }
 
-int pushSorted(position *head, int el) {
-    position newList = (position)malloc(sizeof(number));
-    if (!newList) {
-        fprintf(stderr, "Memory allocation failed!\n");
-        free(newList);
-    }
-    newList->el = el;
-    newList->next = NULL;
+int ucitajIzDatoteke(Pozicija glava) {
+    char imeDatoteke[128];
+    FILE* dat = NULL;
+    int vrijednost;
+    Pozicija zadnji = glava;
+    Pozicija novi = NULL;
 
-    if (*head == NULL || (*head)->el >= el) {
-        newList->next = *head;
-        *head = newList;
+    printf("Unesite ime datoteke: ");
+    scanf(" %s", imeDatoteke);
+
+    dat = fopen(imeDatoteke, "r");
+    if (!dat) {
+        printf("Datoteka se ne moze otvoriti!\n");
+        return 1;
     }
-    else {
-        position current = *head;
-        while (current->next != NULL && current->next->el < el)
-            current = current->next;
-        newList->next = current->next;
-        current->next = newList;
+
+    while (fscanf(dat, "%d", &vrijednost) == 1) {
+        novi = (Pozicija)malloc(sizeof(struct cvor));
+        if (!novi) {
+            fclose(dat);
+            return -1;
+        }
+
+        novi->element = vrijednost;
+        novi->sljedeci = NULL;
+        zadnji->sljedeci = novi;
+        zadnji = novi;
     }
+
+    fclose(dat);
     return 0;
 }
 
-int printList(position head) {
-    if (head == NULL) {
-        printf("Blank list!\n");
+int ispisListe(Pozicija p) {
+    if (!p) {
+        printf("Prazna lista\n");
         return 0;
     }
-    else {
-        while (head != NULL) {
-            printf("%d, ", head->el);
-            head = head->next;
+
+    while (p) {
+        printf("%d ", p->element);
+        p = p->sljedeci;
+    }
+    printf("\n");
+    return 0;
+}
+
+
+int unija(Pozicija L1, Pozicija L2, Pozicija U) {
+    Pozicija zadnji = U;
+    Pozicija novi = NULL;
+    int zadnjaVrijednost = 0;
+    int prvi = 1;
+
+    while (L1 || L2) {
+        int vrijednost;
+
+        if (!L2 || (L1 && L1->element < L2->element)) {
+            vrijednost = L1->element;
+            L1 = L1->sljedeci;
         }
-        printf("\n");
+        else if (!L1 || L2->element < L1->element) {
+            vrijednost = L2->element;
+            L2 = L2->sljedeci;
+        }
+        else {
+            vrijednost = L1->element;
+            L1 = L1->sljedeci;
+            L2 = L2->sljedeci;
+        }
+
+        if (prvi || vrijednost != zadnjaVrijednost) {
+            novi = (Pozicija)malloc(sizeof(struct cvor));
+            if (!novi) return -1;
+
+            novi->element = vrijednost;
+            novi->sljedeci = NULL;
+            zadnji->sljedeci = novi;
+            zadnji = novi;
+
+            zadnjaVrijednost = vrijednost;
+            prvi = 0;
+        }
     }
     return 0;
 }
 
-position getUnion(position l1, position l2) {
-    position result = NULL;
-    while (l1 != NULL || l2 != NULL) {
-        if (l1 == NULL) {
-            pushSorted(&result, l2->el);
-            l2 = l2->next;
+
+int presjek(Pozicija L1, Pozicija L2, Pozicija P) {
+    Pozicija zadnji = P;
+    Pozicija novi = NULL;
+
+    while (L1 && L2) {
+        if (L1->element == L2->element) {
+            novi = (Pozicija)malloc(sizeof(struct cvor));
+            if (!novi) return -1;
+
+            novi->element = L1->element;
+            novi->sljedeci = NULL;
+            zadnji->sljedeci = novi;
+            zadnji = novi;
+
+            L1 = L1->sljedeci;
+            L2 = L2->sljedeci;
         }
-        else if (l2 == NULL) {
-            pushSorted(&result, l1->el);
-            l1 = l1->next;
+        else if (L1->element < L2->element) {
+            L1 = L1->sljedeci;
         }
         else {
-            if (l1->el < l2->el) {
-                pushSorted(&result, l1->el);
-                l1 = l1->next;
-            }
-            else if (l2->el < l1->el) {
-                pushSorted(&result, l2->el);
-                l2 = l2->next;
-            }
-            else {
-                pushSorted(&result, l1->el);
-                l1 = l1->next;
-                l2 = l2->next;
-            }
+            L2 = L2->sljedeci;
         }
     }
-    return result;
+    return 0;
 }
 
-position getIntersection(position l1, position l2) {
-    position result = NULL;
-    while (l1 != NULL && l2 != NULL) {
-        if (l1->el < l2->el) {
-            l1 = l1->next;
-        }
-        else if (l2->el < l1->el) {
-            l2 = l2->next;
-        }
-        else {
-            pushSorted(&result, l1->el);
-            l1 = l1->next;
-            l2 = l2->next;
-        }
-    }
-    return result;
-}
 
-void freeList(position head) {
-    position temp;
-    while (head != NULL) {
-        temp = head;
-        head = head->next;
+void obrisiSve(Pozicija glava) {
+    Pozicija temp;
+
+    while (glava->sljedeci) {
+        temp = glava->sljedeci;
+        glava->sljedeci = temp->sljedeci;
         free(temp);
     }
 }
